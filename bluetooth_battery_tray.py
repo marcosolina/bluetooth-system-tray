@@ -68,31 +68,35 @@ def get_bluetooth_devices_battery():
     devices = []
     seen_names = set()
 
-    # PowerShell script to check multiple device types
+    # PowerShell script to check multiple device types (only currently connected devices)
+    # Connected devices have empty LastConnectedTime, disconnected ones have a past timestamp
     ps_script = '''
 # Check Bluetooth class
-Get-PnpDevice -Class Bluetooth -ErrorAction SilentlyContinue | ForEach-Object {
+Get-PnpDevice -Class Bluetooth -Status OK -ErrorAction SilentlyContinue | ForEach-Object {
     $device = $_
     $battery = Get-PnpDeviceProperty -InstanceId $device.InstanceId -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2' -ErrorAction SilentlyContinue
-    if ($battery.Data -ne $null) {
+    $lastConn = Get-PnpDeviceProperty -InstanceId $device.InstanceId -KeyName 'DEVPKEY_Bluetooth_LastConnectedTime' -ErrorAction SilentlyContinue
+    if ($battery.Data -ne $null -and $lastConn.Data -eq $null) {
         Write-Output "DEVICE:$($device.FriendlyName)|BATTERY:$($battery.Data)"
     }
 }
 
 # Check BTHENUM devices (classic Bluetooth)
-Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'BTHENUM*' } | ForEach-Object {
+Get-PnpDevice -Status OK -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'BTHENUM*' } | ForEach-Object {
     $device = $_
     $battery = Get-PnpDeviceProperty -InstanceId $device.InstanceId -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2' -ErrorAction SilentlyContinue
-    if ($battery.Data -ne $null) {
+    $lastConn = Get-PnpDeviceProperty -InstanceId $device.InstanceId -KeyName 'DEVPKEY_Bluetooth_LastConnectedTime' -ErrorAction SilentlyContinue
+    if ($battery.Data -ne $null -and $lastConn.Data -eq $null) {
         Write-Output "DEVICE:$($device.FriendlyName)|BATTERY:$($battery.Data)"
     }
 }
 
 # Check BTHLE devices (Bluetooth LE)
-Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'BTHLE*' } | ForEach-Object {
+Get-PnpDevice -Status OK -ErrorAction SilentlyContinue | Where-Object { $_.InstanceId -like 'BTHLE*' } | ForEach-Object {
     $device = $_
     $battery = Get-PnpDeviceProperty -InstanceId $device.InstanceId -KeyName '{104EA319-6EE2-4701-BD47-8DDBF425BBE5} 2' -ErrorAction SilentlyContinue
-    if ($battery.Data -ne $null) {
+    $lastConn = Get-PnpDeviceProperty -InstanceId $device.InstanceId -KeyName 'DEVPKEY_Bluetooth_LastConnectedTime' -ErrorAction SilentlyContinue
+    if ($battery.Data -ne $null -and $lastConn.Data -eq $null) {
         Write-Output "DEVICE:$($device.FriendlyName)|BATTERY:$($battery.Data)"
     }
 }
@@ -183,11 +187,15 @@ def create_battery_icon(percentage, size=64):
             fill=color
         )
 
-    # Draw percentage text
+    # Draw percentage text - larger font
+    font_size = 28 if len(text) <= 2 else 22
     try:
-        font = ImageFont.truetype("arial.ttf", 20)
+        font = ImageFont.truetype("arialbd.ttf", font_size)  # Bold Arial
     except (OSError, IOError):
-        font = ImageFont.load_default()
+        try:
+            font = ImageFont.truetype("arial.ttf", font_size)
+        except (OSError, IOError):
+            font = ImageFont.load_default()
 
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
@@ -196,7 +204,7 @@ def create_battery_icon(percentage, size=64):
     text_y = (size - text_height) // 2
 
     # Text outline for visibility
-    for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
+    for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)]:
         draw.text((text_x + dx, text_y + dy), text, fill=(0, 0, 0), font=font)
     draw.text((text_x, text_y), text, fill=(255, 255, 255), font=font)
 
@@ -219,9 +227,9 @@ class BluetoothBatteryTray:
     def get_tooltip(self):
         """Generate tooltip text with all device battery info."""
         if not self.devices:
-            return "Bluetooth Battery - No devices found"
+            return "Bluetooth Battery\nNo devices found"
 
-        lines = []
+        lines = ["Bluetooth Battery"]
         for device in self.devices:
             battery = device['battery']
             name = self.get_clean_name(device['name'])
@@ -266,8 +274,12 @@ class BluetoothBatteryTray:
 
     def create_menu(self):
         """Create the system tray context menu."""
-        items = [pystray.MenuItem("Refresh", self.on_refresh)]
-        items.append(pystray.Menu.SEPARATOR)
+        items = [
+            pystray.MenuItem("Bluetooth Battery", None, enabled=False),
+            pystray.Menu.SEPARATOR,
+            pystray.MenuItem("Refresh", self.on_refresh),
+            pystray.Menu.SEPARATOR
+        ]
 
         if self.devices:
             for device in self.devices:

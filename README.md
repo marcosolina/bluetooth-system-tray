@@ -2,6 +2,9 @@
 
 A Windows 11 system tray application that displays the battery percentage of connected Bluetooth devices.
 
+![Tooltip](screenshots/1.png)
+![Context Menu](screenshots/2.png)
+
 ## Features
 
 - Shows battery level of all connected Bluetooth devices in the system tray
