@@ -2,3 +2,8 @@ __pycache__/
 *.pyc
 *.pyo
 .claude/
+
+# PyInstaller
+build/
+dist/
+*.spec

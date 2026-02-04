@@ -27,13 +27,28 @@ A Windows 11 system tray application that displays the battery percentage of con
 
 ## Usage
 
-### Option 1: Double-click run.bat
+### Option 1: Run the executable
+Build the exe (see below) and run `BluetoothBattery.exe` from the `dist` folder.
+
+### Option 2: Double-click run.bat
 The app starts silently in the system tray. The console window closes automatically.
 
-### Option 2: Run from command line
+### Option 3: Run from command line
 ```
 python bluetooth_battery_tray.py
 ```
+
+## Building the Executable
+
+To create a standalone exe file:
+
+1. Run `build.bat`, or manually:
+   ```
+   pip install pyinstaller
+   python -m PyInstaller --onefile --noconsole --name "BluetoothBattery" bluetooth_battery_tray.py
+   ```
+
+2. The executable will be created at `dist\BluetoothBattery.exe`
 
 ## System Tray
 
