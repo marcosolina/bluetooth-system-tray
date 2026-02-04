@@ -259,6 +259,11 @@ class BluetoothBatteryTray:
         """Handle refresh menu action."""
         self.update_devices()
 
+    def on_toggle_autostart(self, icon, item):
+        """Toggle autostart setting."""
+        current = is_autostart_enabled()
+        set_autostart(not current)
+
     def create_menu(self):
         """Create the system tray context menu."""
         items = [pystray.MenuItem("Refresh", self.on_refresh)]
@@ -284,6 +289,14 @@ class BluetoothBatteryTray:
                 )
             )
 
+        items.append(pystray.Menu.SEPARATOR)
+        items.append(
+            pystray.MenuItem(
+                "Start with Windows",
+                self.on_toggle_autostart,
+                checked=lambda item: is_autostart_enabled()
+            )
+        )
         items.append(pystray.Menu.SEPARATOR)
         items.append(pystray.MenuItem("Quit", self.on_quit))
 

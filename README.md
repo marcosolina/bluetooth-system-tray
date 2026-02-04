@@ -11,6 +11,7 @@ A Windows 11 system tray application that displays the battery percentage of con
 - Right-click menu for quick access to device info
 - Auto-refreshes every 60 seconds
 - Manual refresh option
+- Option to start automatically with Windows
 
 ## Requirements
 
@@ -56,6 +57,7 @@ To create a standalone exe file:
 - **Right-click** to open the menu:
   - View all devices with battery percentages
   - Refresh to update battery levels
+  - Start with Windows - toggle automatic startup on login
   - Quit to exit the application
 
 ## Supported Devices
